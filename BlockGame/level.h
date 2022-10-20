@@ -26,7 +26,7 @@ using json = nlohmann::json;
 enum GRID_TYPES 
 {
 	GRID_WALL,
-	GRID_WATER,
+	GRID_EMPTY,
 };
 
 struct w_m

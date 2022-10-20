@@ -42,6 +42,7 @@ Level::Level(int level_number)
 		this->level_grid.push_back(new_row);
 	}
 
+	// Parse Water
 	std::vector<int> dims = level_json["water"]["dimensions"].get<std::vector<int>>();
 	glm::vec2 water_dims = glm::vec2(dims[0], dims[1]);
 	glm::vec3 water_pos = parse_vector(level_json["water"]["position"].get<std::vector<float>>());
@@ -49,12 +50,6 @@ Level::Level(int level_number)
 	water.dims = water_dims;
 	water.pos = water_pos;
 
-	//// Add Water
-	//glm::vec2 dims(64);
-	//glm::vec3 water_position(-dims.x / 2, -1, -dims.y / 2);
-	//Shader* water_shader = renderer->shader_manager["water_shader"];
-	//Water* water = new Water(water_shader, dims, water_position, false);
-	//entity_system[generate_entity_id()] = water;
 
 	// Close file
 	json_stream.close();
@@ -63,10 +58,6 @@ Level::Level(int level_number)
 Level::~Level()
 {
 	delete camera;
-	//for (auto& entity : this->entity_list)
-	//{
-	//	delete(entity);
-	//}
 }
 
 void Level::print_level_grid()
