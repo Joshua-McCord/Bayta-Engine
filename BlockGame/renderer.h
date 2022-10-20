@@ -14,9 +14,9 @@
 #include "entities/wall.h"
 #include "level.h"
 #include "math_lib.h"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+//#include "imgui.h"
+//#include "imgui_impl_glfw.h"
+//#include "imgui_impl_opengl3.h"
 
 typedef struct player_delta {
 	glm::vec3 player_original_position;
@@ -45,9 +45,9 @@ struct Renderer
 	void set_world(Level* level);
 	void update_world(Player_Delta* player_delta);
 	void draw_world();
-	void draw_ui();
 
 	Texture* load_texture(std::string file_location, std::string texture_name);
+	Shader* load_shader(const char* vert_shader_file, const char* frag_shader_file, const char* geo_shader_file, std::string shader_name);
 
 	void save();
 };

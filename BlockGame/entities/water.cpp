@@ -2,6 +2,48 @@
 
 unsigned int generate_tessellated_plane(glm::vec2 dimensions);
 
+struct Parsed_Water {
+	Material mat;
+	GerstnerMaterial gerst;
+
+};
+typedef struct Parsed_Water Parsed_Water;
+
+Parsed_Water parse_water()
+{
+	Parsed_Water water;
+
+	std::ifstream json_stream("C:/Users/Josh/source/repos/BlockGame/BlockGame/bin/levels/1/view.json");
+	json level_json = json::parse(json_stream);
+
+	// Parse Material
+	std::vector<float> diffuse	 = level_json["water"]["material"]["diffuse"].get<std::vector<float>>();
+	std::vector<float> ambient	 = level_json["water"]["material"]["ambient"].get<std::vector<float>>();
+	std::vector<float> specular	 = level_json["water"]["material"]["specular"].get<std::vector<float>>();
+	float shininess				 = level_json["water"]["material"]["shininess"].get<float>();
+
+	water.mat.diffuse = glm::vec3(diffuse[0], diffuse[1], diffuse[2]);
+	water.mat.ambient = glm::vec3(ambient[0], ambient[1], ambient[2]);
+	water.mat.specular = glm::vec3(specular[0], specular[1], specular[2]);
+	water.mat.shininess = shininess;
+
+
+	// Parse Gerstner Material
+	water.gerst.num_waves = level_json["water"]["gerstner_material"]["num_waves"].get<int>();
+	for (uint8_t i = 0; i < water.gerst.num_waves; ++i)
+	{
+		std::vector<float> dir = level_json["water"]["gerstner_material"]["wave_" + std::to_string(i)]["direction"].get<std::vector<float>>();
+		water.gerst.waves[i].direction = glm::vec2(dir[0], dir[1]);
+		water.gerst.waves[i].amplitude = level_json["water"]["gerstner_material"]["wave_" + std::to_string(i)]["amplitude"].get<float>();
+		water.gerst.waves[i].frequency = level_json["water"]["gerstner_material"]["wave_" + std::to_string(i)]["frequency"].get<float>();
+		water.gerst.waves[i].steepness = level_json["water"]["gerstner_material"]["wave_" + std::to_string(i)]["steepness"].get<float>();
+		water.gerst.waves[i].speed	   = level_json["water"]["gerstner_material"]["wave_" + std::to_string(i)]["speed"].get<float>();
+	}
+
+
+	return water;
+}
+
 Water::Water(Shader* shader, glm::vec2 dimensions, glm::vec3 position, bool is_unit)
 {
 	this->world_position = position;
@@ -18,41 +60,11 @@ Water::Water(Shader* shader, glm::vec2 dimensions, glm::vec3 position, bool is_u
 		xform = glm::scale(xform, glm::vec3(1/dimensions.x, 1, 1/dimensions.y));
 
 	this->mesh.xform = xform;
-	
-	// Materials
-	// Ruby
-	this->material = Material(
-		glm::vec3(0.01745, 0.1175, 0.9175),	// ambient
-		glm::vec3(0.061424, 0.04136, 0.4136),	//diffuse
-		glm::vec3(0.0727811, 0.626959, 0.626959), // Specular
-		0.6
-	);
 
+	Parsed_Water wat = parse_water();
 
-	// Gerstner
-	GerstnerWave waves[3];
-	// Wave 1
-	waves[0].direction = glm::vec2(1.0f, 1.0f);
-	waves[0].amplitude = -0.1;
-	waves[0].steepness = 1.0f;
-	waves[0].frequency = 0.5f;
-	waves[0].speed = 1.0f;
-
-	// Wave 2
-	waves[1].direction = glm::vec2(1.0f, 0.6);
-	waves[1].amplitude = 0.25f;
-	waves[1].steepness = 1.0f;
-	waves[1].frequency = 0.5f;
-	waves[1].speed = 1.0f;
-
-	// Wave 3
-	waves[2].direction = glm::vec2(-2, 1.3f);
-	waves[2].amplitude = 0.35;
-	waves[2].steepness = 1.0f;
-	waves[2].frequency = 0.5f;
-	waves[2].speed = 1.0f;
-
-	this->gerstner = GerstnerMaterial(waves, 3);
+	this->material = wat.mat;
+	this->gerstner = wat.gerst;
 }
 
 void Water::draw(Camera* camera, glm::mat4 projection)

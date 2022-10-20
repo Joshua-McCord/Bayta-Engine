@@ -5,6 +5,7 @@
 #include "renderer.h"
 #include "mesh.h"
 #include "level.h"
+#include "user_interface.h"
 
 #define WINDOW_WIDTH (1920)
 #define WINDOW_HEIGHT (1080)
@@ -32,6 +33,7 @@ struct Game
 
 	Renderer* renderer;
 	Level* current_level;
+	User_Interface* user_interface;
 	Game_State previous_state;
 	Game_State current_state;
 

@@ -1,8 +1,13 @@
 #include "game.h"
 
 Game::Game() {
+
+	// Model, View, UI
 	renderer = new Renderer(WINDOW_WIDTH, WINDOW_HEIGHT);
 	current_level = new Level(1);
+	user_interface = new User_Interface(current_level, renderer);
+
+	// I don't like this
 	this->player_delta.player_original_position = current_level->player_position;
 	this->player_delta.player_new_position = current_level->player_position;
 
@@ -98,5 +103,5 @@ void update_game(Game* game, float delta_time)
 void render_game(Game* game, float delta_time)
 {
 	game->renderer->draw_world();
-	game->renderer->draw_ui();
+	game->user_interface->draw_ui();
 }

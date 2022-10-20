@@ -1,5 +1,5 @@
 #include "renderer.h"
-#include "bezier.hpp"
+
 
 Renderer::Renderer(unsigned int WINDOW_WIDTH, unsigned int WINDOW_HEIGHT)
 {
@@ -114,106 +114,42 @@ void Renderer::draw_world()
 	water.draw(&camera, projection);
 }
 
-void draw_water_options(Water* water)
+void Renderer::save()
 {
-	bool p = true;
-	bool* p_open = &p;
+	json view;
+	// Save Player
+	view["player"]["animation_speed"] = player.animation_speed;
+	view["player"]["animation_curve"] = player.animation_curve;
 
-
-	GerstnerMaterial& gerstner_material = water->gerstner;
-	ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("Example: Simple layout", p_open, ImGuiWindowFlags_MenuBar))
-	{
-		ImGui::SetWindowFontScale(1.5f);
-		// Left
-		static int selected = 0;
-		{
-			ImGui::BeginChild("left pane", ImVec2(150, 0), true);
-			for (int i = 0; i < gerstner_material.num_waves; ++i)
-			{
-				// FIXME: Good candidate to use ImGuiSelectableFlags_SelectOnNav
-				char label[128];
-				sprintf_s(label, "Wave %d", i + 1);
-				if (ImGui::Selectable(label, selected == i))
-					selected = i;
-			}
-			ImGui::EndChild();
-		}
-		ImGui::SameLine();
-
-		// Right
-		{
-			ImGui::BeginGroup();
-			ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
-			ImGui::Text("Wave %d", selected);
-			ImGui::Separator();
-			// Direction
-
-			//ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
-			ImGui::SliderFloat2("Dir.", &gerstner_material.waves[selected].direction.x, -2, 2);
-			ImGui::SliderFloat("Ampl.", &gerstner_material.waves[selected].amplitude, -2, 2);
-			ImGui::SliderFloat("Freq.", &gerstner_material.waves[selected].frequency, -2, 2);
-			ImGui::SliderFloat("Spd.", &gerstner_material.waves[selected].speed, -2, 2);
-			ImGui::SliderFloat("Stpns.", &gerstner_material.waves[selected].steepness, -2, 2);
-			
-			 
-			
-		}
-		ImGui::SameLine();
-		{
-			ImGui::Separator();
-			//ImGui::SliderFloat3("Diffuse", &water->material.diffuse.x, 0, 1);
-			ImGui::ColorPicker4("Diffuse", &water->material.diffuse.x);
-			ImGui::ColorPicker4("Specular", &water->material.specular.x);
-			ImGui::ColorPicker4("Ambient", &water->material.ambient.x);
-			ImGui::SliderFloat("Shininess", &water->material.shininess, 0, 5);
-
-			ImGui::EndChild();
-			if (ImGui::Button("Revert")) {}
-			ImGui::SameLine();
-			if (ImGui::Button("Save")) {}
-			ImGui::EndGroup();
-		}
-	}
-	ImGui::End();
-}
-
-void Renderer::draw_ui()
-{
-	// Start a new frame
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-
-	// Draw UI 
-	// Create a window called "My First Tool", with a menu bar.
-
-	ImGui::Begin("Player Controls");
-	ImGui::SetWindowFontScale(1.5f);
-
-	if (ImGui::MenuItem("Save", "Ctrl+S")) { save(); }
-	ImGui::Bezier("Anim Curve", player.animation_curve);
-	ImGui::SliderFloat("Speed", &player.animation_speed, 0.0f, 0.5f);
-
-	ImGui::End();
-
-	ImGui::Begin("Misc.");
-	ImGui::SetWindowFontScale(1.5f);
-	ImGui::Checkbox("Wireframe Rendering", &wireframe);
-	ImGui::End();
-
-
-	draw_water_options(&water);
+	// Save Water Material
+	std::vector<float> water_diff = { water.material.diffuse.r, water.material.diffuse.g, water.material.diffuse.b };
+	float water_amb[3] = { water.material.ambient.r, water.material.ambient.g, water.material.ambient.b };
+	float water_spec[3] = { water.material.specular.r, water.material.specular.g, water.material.specular.b };
 
 	
 
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
+	view["water"]["material"]["diffuse"] = water_diff;
+	view["water"]["material"]["ambient"] = water_amb;
+	view["water"]["material"]["specular"] = water_spec;
+	view["water"]["material"]["shininess"] = water.material.shininess;
 
-void Renderer::save()
-{
-	player.save();
+	// Save Water Gerstner Props
+	view["water"]["gerstner_material"]["num_waves"] = water.gerstner.num_waves;
+	for (uint8_t i = 0; i < water.gerstner.num_waves; i++)
+	{
+		float wave_dir[2] = { water.gerstner.waves[i].direction.x, water.gerstner.waves[i].direction.y };
+		view["water"]["gerstner_material"]["wave_" + std::to_string(i)]["amplitude"] = water.gerstner.waves[i].amplitude;
+		view["water"]["gerstner_material"]["wave_" + std::to_string(i)]["direction"] = wave_dir;
+		view["water"]["gerstner_material"]["wave_" + std::to_string(i)]["frequency"] = water.gerstner.waves[i].frequency;
+		view["water"]["gerstner_material"]["wave_" + std::to_string(i)]["speed"] = water.gerstner.waves[i].speed;
+		view["water"]["gerstner_material"]["wave_" + std::to_string(i)]["steepness"] = water.gerstner.waves[i].steepness;
+	}
+	
+	// Dump JSON
+	std::ofstream json_stream("C:/Users/Josh/source/repos/BlockGame/BlockGame/bin/levels/1/view.json");
+	json_stream << std::setw(4) << view.dump() << std::endl;
+	json_stream.close();
+	std::cout << "Saved Renderer!" << std::endl;
 }
 
 // Shaders
@@ -222,6 +158,7 @@ Shader* renderer_load_shader(Renderer* renderer, const char* vert_shader_file, c
 	renderer->shader_manager[shader_name] = load_shader_from_file(vert_shader_file, frag_shader_file, geo_shader_file);
 	return renderer->shader_manager[shader_name];
 }
+
 Shader* load_shader_from_file(const char* vert_shader_file, const char* frag_shader_file, const char* geo_shader_file)
 {
 	std::string vertex_code;

@@ -3,6 +3,29 @@
 
 unsigned int generate_player_vertices();
 
+struct Parsed_Player {
+	float anim_curve[4];
+	float anim_speed;
+};
+typedef struct Parsed_Player Parsed_Player;
+
+Parsed_Player parse_player()
+{
+	Parsed_Player player;
+
+	std::ifstream json_stream("C:/Users/Josh/source/repos/BlockGame/BlockGame/bin/levels/1/view.json");
+	json level_json = json::parse(json_stream);
+
+	//// Parse Player Position
+	std::vector<float> anim_curve = level_json["player"]["animation_curve"].get<std::vector<float>>();
+	for (uint8_t i = 0; i < 4; i++)
+		player.anim_curve[i] = anim_curve[i];
+
+	player.anim_speed = level_json["player"]["animation_speed"].get<float>();
+
+	return player;
+}
+
 Player::Player(Shader* shader, Texture* texture, glm::vec3 position)
 {
 	this->world_position = position;
@@ -24,15 +47,9 @@ Player::Player(Shader* shader, Texture* texture, glm::vec3 position)
 	
 	// Parse Animation File
 	// Load JSON File
-	std::ifstream json_stream("C:/Users/Josh/source/repos/BlockGame/BlockGame/bin/levels/1/view.json");
-	json level_json = json::parse(json_stream);
-
-	//// Parse Player Position
-	std::vector<float> anim_curve = level_json["player"]["animation_curve"].get<std::vector<float>>();
-	for (uint8_t i = 0; i < 4; i++)
-		this->animation_curve[i] = anim_curve[i];
-
-	this->animation_speed = level_json["player"]["animation_speed"].get<float>();
+	Parsed_Player parsed_player = parse_player();
+	std::memcpy(this->animation_curve, parsed_player.anim_curve, 4 * sizeof(float));
+	this->animation_speed = parsed_player.anim_speed;
 
 	// Default Animation Time
 	this->animation_t = 0.0f;
@@ -42,7 +59,7 @@ Player::Player(Shader* shader, Texture* texture, glm::vec3 position)
 	// Ruby
 	this->material = Material(
 		glm::vec3(0.1745 	,0.01175 ,	0.01175),	// ambient
-		glm::vec3(0.61424 	,0.04136 ,	0.04136),	//diffuse
+		glm::vec3(0.061424 	,0.84136 ,	0.64136),	//diffuse
 		glm::vec3(0.727811 	,0.626959, 	0.626959), // Specular
 		0.2
 	);
@@ -58,13 +75,7 @@ Player::~Player()
 
 void Player::save()
 {
-	json player;
-	player["player"]["animation_speed"] = this->animation_speed;
-	player["player"]["animation_curve"] = this->animation_curve;
-	std::ofstream json_stream("C:/Users/Josh/source/repos/BlockGame/BlockGame/bin/levels/1/view.json");
-	json_stream << std::setw(4) << player.dump() << std::endl;
-	json_stream.close();
-	std::cout << "Saved Player!" << std::endl;
+	
 }
 
 void Player::update(float delta_time)
