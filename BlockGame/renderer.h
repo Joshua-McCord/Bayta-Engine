@@ -39,7 +39,7 @@ struct Renderer
 	// World
 	Camera camera;
 	Player player;
-	std::vector<std::vector<Wall>> entity_grid;
+	std::vector<std::vector<std::vector<Wall>>> entity_grid;
 	Water water;
 
 	void set_world(Level* level);
