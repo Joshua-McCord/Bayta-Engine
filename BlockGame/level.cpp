@@ -28,18 +28,29 @@ Level::Level(int level_number)
 	std::cout << camera->to_string();
 
 	// Parse Level Grid
-	std::vector<std::vector<std::string>> string_grid = level_json["level_grid"].get<std::vector<std::vector<std::string>>>();
+	std::vector<std::vector<std::vector<std::string>>> string_grid = level_json["level_grid"].get<std::vector<std::vector<std::vector<std::string>>>>();
+
+	std::vector<std::vector<std::vector<std::string>>>::iterator plane;
 	std::vector<std::vector<std::string>>::iterator row;
 	std::vector < std::string > ::iterator col;
-	for (row = string_grid.begin(); row != string_grid.end(); ++row)
+
+	for (plane = string_grid.begin(); plane != string_grid.end(); ++plane)
 	{
-		std::vector<GRID_TYPES> new_row;
-		for (col = row->begin(); col != row->end(); ++col)
-		{
-			if (*col == "GRID_WALL")
-				new_row.push_back(GRID_WALL);
+		std::vector<std::vector<GRID_TYPES>> new_plane;
+		for (row = plane->begin(); row != plane->end(); ++row) {
+
+			std::vector<GRID_TYPES> new_row;
+			for (col = row->begin(); col != row->end(); ++col)
+			{
+				std::string value = *col;
+				if (value == "GRID_WALL")
+					new_row.push_back(GRID_WALL);
+				else if (value == "GRID_EMPTY")
+					new_row.push_back(GRID_EMPTY);
+			}
+			new_plane.push_back(new_row);
 		}
-		this->level_grid.push_back(new_row);
+		this->level_grid.push_back(new_plane);
 	}
 
 	// Parse Water
@@ -50,6 +61,7 @@ Level::Level(int level_number)
 	water.dims = water_dims;
 	water.pos = water_pos;
 
+	print_level_grid();
 
 	// Close file
 	json_stream.close();
@@ -67,41 +79,46 @@ void Level::print_level_grid()
 	{
 		for (size_t j = 0; j < level_grid[i].size(); j++)
 		{
-			if (level_grid[i][j] == GRID_WALL)
+			for (size_t k = 0; k < level_grid[i][j].size(); ++k)
 			{
-				std::cout << "GRID_WALL ";
+				if (level_grid[i][j][k] == GRID_WALL)
+				{
+					std::cout << "GRID_WALL ";
+				}
+				std::cout << "\n";
 			}
+			std::cout << "\n";
 		}
-		std::cout << "\n";
+		std::cout << "\n}\n";
 	}
-	std::cout << "\n}\n";
+	
 }
 
 void Level::update_player(glm::vec3 direction)
 {
-	int x = player_position.x;
-	int y = player_position.y;
-	int z = player_position.z;
+	int x = player_position.x;	// row
+	int y = player_position.y;	// plane
+	int z = player_position.z;	// column
 
 
 	if (direction == RIGHT_VEC)
 	{
-		while(x < level_grid[z].size() - 1)
+		while(x < level_grid[y-1][z].size() - 1 && level_grid[y][z][x + 1] == GRID_EMPTY)
 			x++;
 	}
 	if (direction == LEFT_VEC)
 	{
-		while (x > 0)
+		while (x > 0 && level_grid[y][z][x - 1] == GRID_EMPTY)
 			x--;
 	}
 	if (direction == FORWARD_VEC)
 	{
-		while (z > 0)
+		while (z > 0 && level_grid[y][z - 1][x] == GRID_EMPTY)
 			z--;
 	}
 	if (direction == BACK_VEC)
 	{
-		while (z < level_grid.size() - 1)
+		while (z < level_grid[y-1].size() - 1 && level_grid[y][z + 1][x] == GRID_EMPTY)
 			z++;
 	}
 	player_position = glm::vec3(x, y, z);

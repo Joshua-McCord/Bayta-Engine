@@ -51,7 +51,7 @@ struct Level
 {
 	Camera* camera;
 	glm::vec3 player_position;
-	std::vector<std::vector<GRID_TYPES>> level_grid;
+	std::vector<std::vector<std::vector<GRID_TYPES>>> level_grid;
 	Water_Model water;
 
 	Level(int level_number = 1);

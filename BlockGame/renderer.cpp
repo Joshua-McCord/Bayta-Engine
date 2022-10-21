@@ -43,13 +43,18 @@ void Renderer::set_world(Level* level)
 	player = Player(shader_manager["player_shader"], texture_manager["rock_normal_map"], level->player_position);
 	for (size_t i = 0; i < level->level_grid.size(); ++i)
 	{
-		std::vector<Wall> new_row;
+		std::vector<std::vector<Wall>> new_plane;
 		for (size_t j = 0; j < level->level_grid[i].size(); ++j)
 		{
-			if (level->level_grid[i][j] == GRID_WALL)
-				new_row.push_back(Wall(shader_manager["wall_shader"], glm::vec3(j, 0, i)));
+			std::vector<Wall> new_row;
+			for (size_t k = 0; k < level->level_grid[i][j].size(); ++k)
+			{
+				if (level->level_grid[i][j][k] == GRID_WALL)
+					new_row.push_back(Wall(shader_manager["wall_shader"], glm::vec3(k, i, j)));
+			}
+			new_plane.push_back(new_row);
 		}
-		this->entity_grid.push_back(new_row);
+		this->entity_grid.push_back(new_plane);
 	}
 	water = Water(shader_manager["water_shader"], level->water.dims, level->water.pos);
 }
@@ -66,12 +71,13 @@ void Renderer::update_world(Player_Delta* player_delta)
 
 	if (player.current_state == ANIMATING)
 	{
+		glm::vec3 direction = glm::normalize(new_pos - orig_pos);
 		player.mesh.xform = glm::mat4(1.0f);
 		player.mesh.xform = glm::translate(player.mesh.xform, bezier(
 			orig_pos,
-			(orig_pos + (new_pos - orig_pos) * player.animation_curve[1]),
+			(orig_pos + direction * player.animation_curve[1]),
 			clamp(player.animation_t, 0.0f, 1.0f),
-			(orig_pos + (new_pos - orig_pos) * player.animation_curve[2]),
+			(orig_pos + direction * player.animation_curve[2]),
 			new_pos
 		));
 
@@ -97,17 +103,21 @@ void Renderer::draw_world()
 
 	// Draw Player
 	player.draw(&camera, projection);
-	
+
 	// Draw World Grid
+	std::vector<std::vector<std::vector<Wall>>>::iterator plane;
 	std::vector<std::vector<Wall>>::iterator row;
 	std::vector<Wall>::iterator col;
-	for (row = entity_grid.begin(); row != entity_grid.end(); ++row)
+	for (plane = entity_grid.begin(); plane != entity_grid.end(); ++plane)
 	{
-		for (col = row->begin(); col != row->end(); ++col)
+		for (row = plane->begin(); row != plane->end(); ++row)
 		{
-			Wall wall = *col;
-			wall.draw(&camera, projection);
-		};
+			for (col = row->begin(); col != row->end(); ++col)
+			{
+				Wall wall = *col;
+				wall.draw(&camera, projection);
+			}
+		}
 	}
 
 	// Draw Water
@@ -137,6 +147,7 @@ void Renderer::save()
 	view["water"]["gerstner_material"]["num_waves"] = water.gerstner.num_waves;
 	for (uint8_t i = 0; i < water.gerstner.num_waves; i++)
 	{
+		glm::normalize(water.gerstner.waves[i].direction);
 		float wave_dir[2] = { water.gerstner.waves[i].direction.x, water.gerstner.waves[i].direction.y };
 		view["water"]["gerstner_material"]["wave_" + std::to_string(i)]["amplitude"] = water.gerstner.waves[i].amplitude;
 		view["water"]["gerstner_material"]["wave_" + std::to_string(i)]["direction"] = wave_dir;
